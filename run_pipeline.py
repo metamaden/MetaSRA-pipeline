@@ -5,10 +5,16 @@
 #
 ########################################################################
 
+'''
+Note: This script runs with Python 2.7
+'''
+
 from optparse import OptionParser
 import json
 from sets import Set
 import sys
+reload(sys)
+sys.setdefaultencoding("utf-8") # needed for Python 2..
 from collections import defaultdict, deque
 import json
 import dill
