@@ -5,16 +5,13 @@
 #
 ########################################################################
 
-'''
-Note: This script runs with Python 2.7
-'''
-
 from optparse import OptionParser
 import json
 from sets import Set
 import sys
 reload(sys)
 sys.setdefaultencoding("utf-8") # needed for Python 2..
+import argparse
 from collections import defaultdict, deque
 import json
 import dill
@@ -37,6 +34,7 @@ def main():
     (options, args) = parser.parse_args()
    
     input_f = args[0]
+    write_f = args[1]
      
     # Map key-value pairs to ontologies
     with open(input_f, "r") as f:
@@ -67,6 +65,13 @@ def main():
         outputs.append(
             run_pipeline_on_key_vals(tag_to_val, ont_id_to_og, mappings)
         )
+    # use json.dump to stream json to outfile, where fn is second arg
+    if write_f:
+        with open(write_f, 'w') as outfile:
+            json.dump(obj = outputs, fp = outfile, indent=4, 
+                separators=(',', ': ')
+                )
+    # use json.dumps to return json output as a string, to console
     print json.dumps(outputs, indent=4, separators=(',', ': '))
 
 def run_pipeline_on_key_vals(tag_to_val, ont_id_to_og, mapping_data): 

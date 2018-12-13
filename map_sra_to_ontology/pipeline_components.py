@@ -1,5 +1,5 @@
 ###########################################################################
-#   Components for building metadata mapping pipelines. 
+#   Components for building metadata mapping pipelines.
 ###########################################################################
 
 import json
@@ -23,9 +23,15 @@ from text_reasoning_graph import *
 import ball_tree_distance
 from load_specialist_lex import SpecialistLexicon
 
+import sys
+reload(sys)  
+sys.setdefaultencoding('utf8')
+
+sys.path.insert(0, os.path.join("MetaSRA-pipeline","bktree"))
 import bktree
 from bktree import BKTree
 import marisa_trie as mt
+
 
 # Relative paths to resources
 resource_package = __name__
@@ -51,29 +57,29 @@ class MappedTerm:
         self.orig_key = orig_key
         self.orig_val = orig_val
         #self.match_score = match_score
-        self.mapping_path = mapping_path   
+        self.mapping_path = mapping_path
         self.consequent = consequent
 
     def to_dict(self):
         path = str(self.mapping_path)
-        return {"term_id": self.term_id, 
+        return {"term_id": self.term_id,
             "original_key":self.orig_key,
             "original_value": self.orig_val,
             "consequent": self.consequent,
             "path_to_mapping": path}
-      
+
     def __str__(self):
-        return str(self.to_dict())  
- 
+        return str(self.to_dict())
+
 class RealValueProperty:
     def __init__(
-        self, 
-        property_id, 
-        consequent, 
-        value, 
-        unit_id, 
-        orig_key, 
-        orig_val, 
+        self,
+        property_id,
+        consequent,
+        value,
+        unit_id,
+        orig_key,
+        orig_val,
         mapping_path
     ):
         self.property_id = property_id
@@ -105,14 +111,14 @@ class Pipeline:
 
     def run(self, tag_to_val):
         tm_graph = TextReasoningGraph(prohibit_cycles=False)
-                
+
         # Create initial text-mining-graph
         tokens = set()
         for tag, val in tag_to_val.iteritems():
             kv_node = KeyValueNode(
-                tag.encode('utf-8'), 
+                tag.encode('utf-8'),
                 val.encode('utf-8')
-            )    
+            )
             tm_graph.add_node(kv_node)
 
         # Process stages of pipeline
@@ -152,17 +158,17 @@ class Pipeline:
             c_node = orig_kv_node
             while c_node != mapped_node:
                 path.append((
-                    c_node, 
-                    prev[c_node][1], 
+                    c_node,
+                    prev[c_node][1],
                     prev[c_node][0]
                 ))
                 c_node = prev[c_node][0]
-        
-            if VERBOSE: 
+
+            if VERBOSE:
                 try:
                     print "Path from ontology node '%s' to closest key-value %s is %s" % (
-                        str(mapped_node).encode('utf-8'), 
-                        str(orig_kv_node).encode('utf-8'), 
+                        str(mapped_node).encode('utf-8'),
+                        str(orig_kv_node).encode('utf-8'),
                         str(path).encode('utf-8')
                     )
                 except:
@@ -172,10 +178,10 @@ class Pipeline:
 
         def is_consequent(mapped_node):
             consequent_edges = set([
-                Inference("Custom consequent term"), 
-                Inference("Linked term of superterm"), 
+                Inference("Custom consequent term"),
+                Inference("Linked term of superterm"),
                 Inference("Cell culture from cell line"),
-                Inference("Infer developmental stage"), 
+                Inference("Infer developmental stage"),
                 Inference("Inferred from cell line data")
             ])
             for edge in text_mining_graph.reverse_edges[mapped_node]:
@@ -185,12 +191,12 @@ class Pipeline:
 
         mapped_terms = []
         exclude_ids = set([
-            x.property_term_id 
+            x.property_term_id
             for x in text_mining_graph.real_value_nodes
         ])
         exclude_nodes = set([
-            x 
-            for x in text_mining_graph.ontology_term_nodes 
+            x
+            for x in text_mining_graph.ontology_term_nodes
             if x.term_id in exclude_ids
         ])
         for o_node in text_mining_graph.ontology_term_nodes:
@@ -199,14 +205,14 @@ class Pipeline:
                 consequent = is_consequent(o_node)
                 mapped_terms.append(
                     MappedTerm(
-                        o_node.term_id, 
-                        consequent, 
-                        r[0], 
-                        r[1], 
+                        o_node.term_id,
+                        consequent,
+                        r[0],
+                        r[1],
                         r[2]
                     )
                 )
-        
+
         real_value_properties = []
         for rv_node in text_mining_graph.real_value_nodes:
             r = extract_mapping(rv_node)
@@ -214,19 +220,19 @@ class Pipeline:
                 consequent = is_consequent(rv_node)
                 real_value_properties.append(
                     RealValueProperty(
-                        rv_node.property_term_id, 
-                        consequent, 
-                        rv_node.value, 
-                        rv_node.unit_term_id, 
-                        r[0], 
-                        r[1], 
+                        rv_node.property_term_id,
+                        consequent,
+                        rv_node.value,
+                        rv_node.unit_term_id,
+                        r[0],
+                        r[1],
                         r[2]
                     )
                 )
 
         return mapped_terms, real_value_properties
 
- 
+
 
 ###################################################################################
 #   Graph transformation stages
@@ -260,8 +266,8 @@ class InitKeyValueTokens_Stage:
 
 class KeyValueFilter_Stage:
     def __init__(
-        self, 
-        perform_filter_keys=True, 
+        self,
+        perform_filter_keys=True,
         perform_filter_values=True
     ):
         with open(FILTER_KEYS_JSON, "r") as f:
@@ -275,16 +281,16 @@ class KeyValueFilter_Stage:
         print "Filtering key-value pairs..."
         if self.perform_filter_keys:
             remove_kv_nodes = [
-                x 
-                for x in text_mining_graph.key_val_nodes 
+                x
+                for x in text_mining_graph.key_val_nodes
                 if x.key in self.filter_keys
             ]
             for kv_node in remove_kv_nodes:
                 text_mining_graph.delete_node(kv_node)
         if self.perform_filter_values:
             remove_kv_nodes = [
-                x 
-                for x in text_mining_graph.key_val_nodes 
+                x
+                for x in text_mining_graph.key_val_nodes
                 if x.value in self.filter_values
             ]
             for kv_node in remove_kv_nodes:
@@ -296,32 +302,32 @@ class TwoCharMappings_Stage():
     def __init__(self):
         with open(TWO_CHAR_MAPPINGS_JSON, "r") as f:
             self.str_to_mappings = json.load(f)
-    
+
     def run(self, text_mining_graph):
         print "Matching specified two-character artifacts..."
         for t_node in text_mining_graph.token_nodes:
             if t_node.token_str in self.str_to_mappings:
                 for t_id in self.str_to_mappings[t_node.token_str]:
-                    match_node = OntologyTermNode(t_id) 
+                    match_node = OntologyTermNode(t_id)
                     edge = FuzzyStringMatch(
-                        t_node.token_str, 
-                        t_node.token_str, 
+                        t_node.token_str,
+                        t_node.token_str,
                         "CUSTOM_TWO_CHAR_MATCH",
                         edit_dist=0
                     )
                     text_mining_graph.add_edge(
-                        t_node, 
-                        match_node, 
+                        t_node,
+                        match_node,
                         edge
                     )
         return text_mining_graph
-        
+
 
 class Synonyms_Stage(object):
     def __init__(self, syn_set_name, syn_f):
         self.syn_set_name = syn_set_name
         syn_sets_f = pr.resource_filename(
-            resource_package, 
+            resource_package,
             join("synonym_sets", syn_f)
         )
         with open(syn_sets_f, "r") as f:
@@ -337,8 +343,8 @@ class Synonyms_Stage(object):
                     for syn in syn_set:
                         tnode_to_edges[t_node].append(
                             TokenNode(
-                                syn, 
-                                t_node.origin_gram_start, 
+                                syn,
+                                t_node.origin_gram_start,
                                 t_node.origin_gram_end
                             )
                         )
@@ -379,19 +385,19 @@ class NGram_Stage:
                     g_str = n_gram_strs[i]
                     interval = intervals[i]
                     new_t_node = TokenNode(
-                        g_str, 
-                        t_node.origin_gram_start + interval[0], 
+                        g_str,
+                        t_node.origin_gram_start + interval[0],
                         t_node.origin_gram_start + interval[1]
                     )
                     tnode_to_edges[t_node].append(new_t_node)
-        
+
         for source_node, target_nodes in tnode_to_edges.iteritems():
             for target_node in target_nodes:
                 text_mining_graph.add_edge(source_node, target_node, edge)
 
         return text_mining_graph
 
-      
+
 class Lowercase_Stage:
     def run(self, text_mining_graph):
         print "Generating lower-cased artifacts..."
@@ -399,11 +405,11 @@ class Lowercase_Stage:
         tnode_to_edges = defaultdict(lambda: [])
         for t_node in text_mining_graph.token_nodes:
             tnode_to_edges[t_node] = TokenNode(
-                t_node.token_str.lower(), 
-                t_node.origin_gram_start, 
+                t_node.token_str.lower(),
+                t_node.origin_gram_start,
                 t_node.origin_gram_end
             )
- 
+
         for source_node, target_node in tnode_to_edges.iteritems():
             text_mining_graph.add_edge(source_node, target_node, edge)
         return text_mining_graph
@@ -417,7 +423,7 @@ class PropertySpecificSynonym_Stage:
     def run(self, text_mining_graph):
         print "Searching for property-specific synonyms..."
         for kv_node in text_mining_graph.key_val_nodes:
-            # Find all downstream nodes of the 'key' token-nodes 
+            # Find all downstream nodes of the 'key' token-nodes
             key_term_nodes = set()
             for edge in text_mining_graph.forward_edges[kv_node]:
                 if isinstance(edge, DerivesInto) and edge.derivation_type == "key":
@@ -427,9 +433,9 @@ class PropertySpecificSynonym_Stage:
                         )
 
             key_term_nodes = [
-                x 
-                for x in key_term_nodes 
-                if isinstance(x, OntologyTermNode) 
+                x
+                for x in key_term_nodes
+                if isinstance(x, OntologyTermNode)
                 and x.term_id in self.property_id_to_syn_sets
             ]
 
@@ -458,15 +464,15 @@ class PropertySpecificSynonym_Stage:
 class BlockCellLineNonCellLineKey_Stage:
     def __init__(self):
         self.cell_line_keys = set([
-            "EFO:0000322", 
+            "EFO:0000322",
             "EFO:0000324"
         ])
         #self.cell_line_phrases = set(["source_name"])
         self.cell_line_phrases = set()
 
-        cvcl_og, x,y = load_ontology.load("4") 
+        cvcl_og, x,y = load_ontology.load("4")
 
-        # Cell line terms are all CVCL terms and those terms in the EFO they link 
+        # Cell line terms are all CVCL terms and those terms in the EFO they link
         # to
         self.cell_line_terms = set(cvcl_og.id_to_term.keys())
         with open(TERM_TO_LINKED_ANCESTOR_JSON, "r") as f:
@@ -479,23 +485,23 @@ class BlockCellLineNonCellLineKey_Stage:
         print "Checking cell line terms for proper context..."
         kv_nodes_cellline_val = deque()
         for kv_node in text_mining_graph.key_val_nodes:
-            # Find children of the key that indicate they encode a cell-line value 
+            # Find children of the key that indicate they encode a cell-line value
             key_term_nodes = set()
             for edge in text_mining_graph.forward_edges[kv_node]:
                 if isinstance(edge, DerivesInto) and edge.derivation_type == "key":
                     for t_node in text_mining_graph.forward_edges[kv_node][edge]:
-                        key_term_nodes.update( 
+                        key_term_nodes.update(
                             text_mining_graph.downstream_nodes(t_node)
                         )
 
             key_term_nodes = [
-                x for x in key_term_nodes 
+                x for x in key_term_nodes
                 if (
-                    isinstance(x, OntologyTermNode) 
+                    isinstance(x, OntologyTermNode)
                     and x.term_id in self.cell_line_keys
-                ) 
+                )
                 or (
-                    isinstance(x, CustomMappingTargetNode) 
+                    isinstance(x, CustomMappingTargetNode)
                     and x.rep_str in self.cell_line_phrases
                 )
             ]
@@ -503,14 +509,14 @@ class BlockCellLineNonCellLineKey_Stage:
             if len(key_term_nodes) > 0:
                 kv_nodes_cellline_val.append(kv_node)
 
-    
+
         remove_nodes = deque()
         for kv_node in text_mining_graph.key_val_nodes:
             if kv_node in kv_nodes_cellline_val:
                 continue
 
-            # Gather all nodes that are children of the key-nodes that do not 
-            # contain a cell-line value. Remove them if they represent a cell 
+            # Gather all nodes that are children of the key-nodes that do not
+            # contain a cell-line value. Remove them if they represent a cell
             # line.
             for edge in text_mining_graph.forward_edges[kv_node]:
                 if isinstance(edge, DerivesInto) and edge.derivation_type == "val":
@@ -519,10 +525,10 @@ class BlockCellLineNonCellLineKey_Stage:
                             if isinstance(down_node, OntologyTermNode):
                                 if down_node.term_id in self.cell_line_terms:
 
-                                    # Check whether this node has a path to a 
+                                    # Check whether this node has a path to a
                                     # cell line term node
                                     dist, prev = text_mining_graph.shortest_path(
-                                        down_node, 
+                                        down_node,
                                         use_reverse_edges=True
                                     )
                                     path_from_cell_line_key = False
@@ -531,7 +537,7 @@ class BlockCellLineNonCellLineKey_Stage:
                                             path_from_cell_line_key = True
                                             break
 
-                                    if not path_from_cell_line_key: 
+                                    if not path_from_cell_line_key:
                                         remove_nodes.append(down_node)
 
         for remove_node in remove_nodes:
@@ -546,7 +552,7 @@ class PrioritizeExactMatchOverFuzzyMatch:
 
         # This is a list of sets of artifact-nodes. All nodes in each
         # set originate from the same intervals in the raw key-value
-        # metadata and all match lexically to a target. 
+        # metadata and all match lexically to a target.
         matched_t_node_sets = []
         for t_node_1 in text_mining_graph.token_nodes:
             start = t_node_1.origin_gram_start
@@ -568,8 +574,8 @@ class PrioritizeExactMatchOverFuzzyMatch:
                     if isinstance(edge, FuzzyStringMatch) and edge.edit_dist == 0:
                         found_exact = True
                         break
-           
-#            # TODO REMOVE 
+
+#            # TODO REMOVE
 #            if found_exact:
 #                print "Found exact match in token node set: %s" % t_node_set
 #            # TODO REMOVE
@@ -600,13 +606,13 @@ class SPECIALISTLexInflectionalVariants:
         self.specialist_lex = specialist_lex
 
     def run(self, text_mining_graph):
-        print "Generating inflectional variants..." 
+        print "Generating inflectional variants..."
         edge = DerivesInto("Inflectional variant")
         tnode_to_edges = defaultdict(lambda: [])
         for t_node in text_mining_graph.token_nodes:
 
             unigrams = nltk_n_grams(t_node.token_str, 1)
-            if len(unigrams) == 0: # TODO make sure this can't happen 
+            if len(unigrams) == 0: # TODO make sure this can't happen
                 continue
             gram_replace = unigrams[-1]
             len_last_gram = len(gram_replace)
@@ -615,17 +621,17 @@ class SPECIALISTLexInflectionalVariants:
                 new_str = t_node.token_str[:-len_last_gram] + infl_var
                 tnode_to_edges[t_node].append(
                     TokenNode(
-                        new_str, 
-                        t_node.origin_gram_start, 
+                        new_str,
+                        t_node.origin_gram_start,
                         t_node.origin_gram_end
                     )
                 )
-            
+
         for source_node, target_nodes in tnode_to_edges.iteritems():
             for target_node in target_nodes:
                 text_mining_graph.add_edge(source_node, target_node, edge)
         return text_mining_graph
- 
+
 class SPECIALISTSpellingVariants:
     def __init__(self, specialist_lex):
         self.specialist_lex = specialist_lex
@@ -637,7 +643,7 @@ class SPECIALISTSpellingVariants:
         for t_node in text_mining_graph.token_nodes:
 
             unigrams = nltk_n_grams(t_node.token_str, 1)
-            if len(unigrams) == 0: # TODO make sure this can't happen 
+            if len(unigrams) == 0: # TODO make sure this can't happen
                 continue
             gram_replace = unigrams[-1]
             len_last_gram = len(gram_replace)
@@ -684,7 +690,7 @@ class Delimit_Stage:
 
 
 class FilterOntologyMatchesByPriority_Stage:
-    
+
     def run(self, text_mining_graph):
         def is_edge_direct_match(edge):
             return edge.match_target == "TERM_NAME" \
@@ -699,7 +705,7 @@ class FilterOntologyMatchesByPriority_Stage:
 
         print "Filtering synonym matches by semantic similarity to term..."
         id_spaces = set([
-            x.term_id.split(":")[0] 
+            x.term_id.split(":")[0]
             for x in text_mining_graph.ontology_term_nodes
         ])
         for id_space in id_spaces:
@@ -714,7 +720,7 @@ class FilterOntologyMatchesByPriority_Stage:
                     if discard:
                         break
 
-                # If match to term-name or exact synonym, then delete all non-term-name and 
+                # If match to term-name or exact synonym, then delete all non-term-name and
                 # non-exact-synonym matches
                 if discard:
                     del_edges = []
@@ -722,7 +728,7 @@ class FilterOntologyMatchesByPriority_Stage:
                         for targ_node in target_nodes:
                             if is_edge_to_node_a_match(edge, targ_node, id_space) and not is_edge_direct_match(edge):
                                 del_edges.append((t_node, targ_node, edge))
-        
+
                     for e in del_edges:
                         text_mining_graph.delete_edge(e[0], e[1], e[2])
 
@@ -746,12 +752,12 @@ class ExactStringMatching_Stage:
     the ontologies. Uses a trie data structure.
     """
     def __init__(
-        self, 
-        target_og_ids, 
-        query_len_thresh=None, 
+        self,
+        target_og_ids,
+        query_len_thresh=None,
         match_numeric=False
     ):
-          
+
         #self.mappable_ogs = load_mappable_ontologies(target_og_ids)
         self.query_len_thresh = query_len_thresh
         self.match_numeric = match_numeric
@@ -762,20 +768,20 @@ class ExactStringMatching_Stage:
         curr_i = 0
 
         ontology_graphs = [
-            load_ontology.load(x)[0] 
+            load_ontology.load(x)[0]
             for x in target_og_ids
         ]
         for og in ontology_graphs:
             for term in og.get_mappable_terms():
                 self.terms_array.append(term)
                 tups.append((
-                    term.name.decode('utf-8'), 
+                    term.name.decode('utf-8'),
                     [curr_i]
                 ))
                 for syn in term.synonyms:
                     try:
                         tups.append((
-                            syn.syn_str.decode('utf-8'), 
+                            syn.syn_str.decode('utf-8'),
                             [curr_i]
                         ))
                     except UnicodeEncodeError:
@@ -792,7 +798,7 @@ class ExactStringMatching_Stage:
             for r in results:
                 term = self.terms_array[r[0]]
                 mapped.append(term)
-            
+
         except KeyError:
             #print "Query '%s' not in trie" % query
             pass
@@ -807,18 +813,18 @@ class ExactStringMatching_Stage:
             if not self.match_numeric and is_number(t_node.token_str):
                 continue
 
-            # TODO Check for matches in the Trie            
+            # TODO Check for matches in the Trie
             terms = self.map_string(t_node.token_str)
             for term in terms:
                 match_node = OntologyTermNode(term.id)
                 if t_node.token_str == term.name:
                     text_mining_graph.add_edge(
-                        t_node, 
-                        match_node, 
+                        t_node,
+                        match_node,
                         FuzzyStringMatch(
-                            t_node.token_str, 
-                            term.name, 
-                            "TERM_NAME", 
+                            t_node.token_str,
+                            term.name,
+                            "TERM_NAME",
                             edit_dist=0
                         )
                     )
@@ -826,11 +832,11 @@ class ExactStringMatching_Stage:
                     for syn in term.synonyms:
                         if t_node.token_str == syn.syn_str:
                             text_mining_graph.add_edge(
-                                t_node, 
-                                match_node, 
+                                t_node,
+                                match_node,
                                 FuzzyStringMatch(
-                                    t_node.token_str, 
-                                    syn.syn_str, "%s_SYNONYM" % syn.syn_type, 
+                                    t_node.token_str,
+                                    syn.syn_str, "%s_SYNONYM" % syn.syn_type,
                                     edit_dist=0
                                 )
                             )
@@ -846,7 +852,7 @@ class FuzzyStringMatching_Stage:
     for all artifacts against the ontologies.
     """
     def __init__(self, thresh, query_len_thresh=None, match_numeric=False):
-       
+
         fname = pr.resource_filename(resource_package, join("fuzzy_matching_index", "fuzzy_match_string_data.json"))
         with open(fname, "r") as f:
             self.str_to_terms = json.load(f)
@@ -854,7 +860,7 @@ class FuzzyStringMatching_Stage:
         fname = pr.resource_filename(resource_package, join("fuzzy_matching_index", "fuzzy_match_bk_tree.pickle"))
         with open(fname, "r") as f:
             self.bk_tree = pickle.load(f)
-        
+
         self.query_len_thresh = query_len_thresh
         self.thresh = thresh
         self.match_numeric = match_numeric
@@ -867,25 +873,25 @@ class FuzzyStringMatching_Stage:
         try:
             within_edit_thresh = self.bk_tree.query(query, 2)
         except UnicodeDecodeError:
-            print "Encoding error querying BK-tree for query: '%s'" % query        
+            print "Encoding error querying BK-tree for query: '%s'" % query
             return matched
 
         str1 = query
         for result in within_edit_thresh:
-            
+
             str2 = result[1]
             #dist = result[0]
             dist = edit_distance(str1, str2)
             if dist > 2:
                 continue
-        
+
             if VERBOSE:
                 print "Retrieved '%s' from BK-tree. It has edit distance of %f" % (str2.encode('utf-8'), dist)
             len1 = len(str1)
             len2 = len(str2)
             max_len = max([len1, len2])
 
-            # If the length difference between the two strings 
+            # If the length difference between the two strings
             # is greater than the threshold, we can return false.
             len_diff = abs(len1-len2)
             if len_diff / max_len > self.thresh:
@@ -932,19 +938,19 @@ class FuzzyStringMatching_Stage:
                 if VERBOSE:
                     print "Mapping artifact '%s' to term %s" % (matched_str, term_id)
                 text_mining_graph.add_edge(
-                    t_node, 
-                    match_node, 
+                    t_node,
+                    match_node,
                     FuzzyStringMatch(
-                        t_node.token_str, 
-                        matched_str, 
-                        match_type, 
+                        t_node.token_str,
+                        matched_str,
+                        match_type,
                         edit_dist=edit_dist
                     )
                 )
 
         return text_mining_graph
 
-    
+
 
 
 
@@ -964,7 +970,7 @@ class RemoveSubIntervalOfMatchedBlockAncestralLink_Stage:
                 return True
             else:
                 return False
-        
+
         print "Blocking subphrases of mapped superphrases..."
         mapped_t_nodes = deque()
         for mt_node in text_mining_graph.mapping_target_nodes:
@@ -990,9 +996,9 @@ class RemoveSubIntervalOfMatchedBlockAncestralLink_Stage:
 
             exclude_edges = set([DerivesInto("N-Gram"),  DerivesInto("Delimiter")])
             superphrase_node_to_reachable = {x:text_mining_graph.downstream_nodes(x, exclude_edges=exclude_edges) for x in superphrase_nodes}
-           
+
             mapped_from_t = [x for x in text_mining_graph.get_children(t_node) if isinstance(x, MappingTargetNode)]
-            
+
             keep_as_mappable = set()
             for mft in mapped_from_t:
                 # Check if this mapped node from this token node is also reachable from all superphrase nodes.
@@ -1020,7 +1026,7 @@ class RemoveSubIntervalOfMatchedBlockAncestralLink_Stage:
             for d in del_edges:
                 #print "This edge did not make the cut! %s --%s--> %s" % (t_node, edge, targ_node)
                 text_mining_graph.delete_edge(d[0], d[1], d[2])
-            
+
 
         return text_mining_graph
 
@@ -1029,22 +1035,22 @@ class RemoveSubIntervalOfMatchedBlockAncestralLink_Stage:
 class ExactMatchCustomTargets_Stage:
     def __init__(self):
         with open(NOUN_PHRASES_JSON, "r") as f:
-            self.noun_phrases = set(json.load(f)) 
-     
+            self.noun_phrases = set(json.load(f))
+
     def run(self, text_mining_graph):
         print "Matching to custom noun-phrases..."
         for t_node in text_mining_graph.token_nodes:
             if t_node.token_str in self.noun_phrases:
                 c_node = CustomMappingTargetNode(t_node.token_str)
                 edge = FuzzyStringMatch(
-                    t_node.token_str, 
-                    t_node.token_str, 
-                    "CUSTOM_NOUN_PHRASE", 
+                    t_node.token_str,
+                    t_node.token_str,
+                    "CUSTOM_NOUN_PHRASE",
                     edit_dist=0
                 )
                 text_mining_graph.add_edge(t_node, c_node, edge)
-        return text_mining_graph 
-        
+        return text_mining_graph
+
 
 class CellLineToImpliedDisease_Stage:
     def __init__(self):
@@ -1071,7 +1077,7 @@ class AcronymToExpansion_Stage:
     """
     Expand acronyms to their full name. For example,
     'iPSC' will be expanded to 'induced pluripotent
-    stem cell'. 
+    stem cell'.
     """
     def __init__(self):
         with open(ACRONYM_TO_EXPANSION_JSON, "r") as f:
@@ -1101,8 +1107,8 @@ class AcronymToExpansion_Stage:
 
 class ATCCKeyValueFilter_Stage:
     def __init__(
-        self, 
-        perform_filter_keys=True, 
+        self,
+        perform_filter_keys=True,
         perform_filter_values=True
     ):
         with open(CELL_LINE_FILTER_KEYS_JSON, "r") as f:
@@ -1115,16 +1121,16 @@ class ATCCKeyValueFilter_Stage:
     def run(self, text_mining_graph):
         if self.perform_filter_keys:
             remove_kv_nodes = [
-                x 
-                for x in text_mining_graph.key_val_nodes 
+                x
+                for x in text_mining_graph.key_val_nodes
                 if x.key in self.filter_keys
             ]
             for kv_node in remove_kv_nodes:
                 text_mining_graph.delete_node(kv_node)
         if self.perform_filter_values:
             remove_kv_nodes = [
-                x 
-                for x in text_mining_graph.key_val_nodes 
+                x
+                for x in text_mining_graph.key_val_nodes
                 if x.value in self.filter_values
             ]
             for kv_node in remove_kv_nodes:
@@ -1140,11 +1146,11 @@ class ExtractRealValue_Stage:
     """
     Extract numeric properties as tuples of the form:
     (property, value, unit)
-   
+
     This is accomplished by searching the graph emanating
     from the key for a property ontology term. If found, we
     search the graph emanating from the value for a number
-    and for a unit ontology term. 
+    and for a unit ontology term.
     """
 
     def __init__(self):
@@ -1155,25 +1161,25 @@ class ExtractRealValue_Stage:
 
     def run(self, text_mining_graph):
         print "Extracting real-value properties..."
-    
+
         for kv_node in text_mining_graph.key_val_nodes:
             if VERBOSE:
                 print "Checking whether key-value pair node %s encodes a \
                     real-value property." % kv_node
 
-            # Find ontology-terms that refer to real-valued properties 
+            # Find ontology-terms that refer to real-valued properties
             real_val_term_nodes = set()
             for edge in text_mining_graph.forward_edges[kv_node]:
                 if isinstance(edge, DerivesInto) and edge.derivation_type == "key":
                     for t_node in text_mining_graph.forward_edges[kv_node][edge]:
-                        real_val_term_nodes.update( 
+                        real_val_term_nodes.update(
                             text_mining_graph.downstream_nodes(t_node)
                         )
 
             real_val_term_nodes = [
-                x 
-                for x in real_val_term_nodes 
-                if isinstance(x, OntologyTermNode) 
+                x
+                for x in real_val_term_nodes
+                if isinstance(x, OntologyTermNode)
                 and x.term_id in self.real_val_tids
             ]
             if VERBOSE:
@@ -1182,7 +1188,7 @@ class ExtractRealValue_Stage:
                 print "Found property nodes: %s" % real_val_term_nodes
             if len(real_val_term_nodes) == 0:
                 continue
-        
+
             # Gather all nodes that are children of the this key-value's value
             real_val_candidates = set()
             for edge in text_mining_graph.forward_edges[kv_node]:
@@ -1190,28 +1196,28 @@ class ExtractRealValue_Stage:
                     for t_node in text_mining_graph.forward_edges[kv_node][edge]:
                         real_val_candidates.update(
                             text_mining_graph.downstream_nodes(t_node)
-                        )    
+                        )
 
             if VERBOSE:
                 print "The real-value candidates are: %s" % real_val_candidates
             numeric_nodes = [
-                x 
-                for x in real_val_candidates 
-                if isinstance(x, TokenNode) 
+                x
+                for x in real_val_candidates
+                if isinstance(x, TokenNode)
                 and is_number(x.token_str)
             ]
             if VERBOSE:
                 print "Found numeric nodes: %s" % numeric_nodes
             unit_nodes = [
-                x 
-                for x in real_val_candidates 
-                if isinstance(x, OntologyTermNode) 
+                x
+                for x in real_val_candidates
+                if isinstance(x, OntologyTermNode)
                 and x.term_id.split(":")[0] == "UO"
             ]
             if VERBOSE:
                 print "Found unit nodes: %s" % unit_nodes
 
-            # If there is one real-value ontology term, one numeric token, 
+            # If there is one real-value ontology term, one numeric token,
             # and one unit node, then create real-value-property node
             edge = DerivesInto("Real-value extraction") # TODO should use a different edge-type
             if len(real_val_term_nodes) == 1:
@@ -1220,23 +1226,23 @@ class ExtractRealValue_Stage:
                     if len(unit_nodes) == 1:
                         unit_node = list(unit_nodes)[0]
                         rv_node = RealValuePropertyNode(
-                            prop_term_node.term_id, 
-                            float(numeric_node.token_str), 
+                            prop_term_node.term_id,
+                            float(numeric_node.token_str),
                             unit_node.term_id
                         )
                         text_mining_graph.add_edge(
-                            prop_term_node, 
-                            rv_node, 
+                            prop_term_node,
+                            rv_node,
                             edge
                         )
                         text_mining_graph.add_edge(
-                            numeric_node, 
-                            rv_node, 
+                            numeric_node,
+                            rv_node,
                             edge
                         )
                         text_mining_graph.add_edge(
-                            unit_node, 
-                            rv_node, 
+                            unit_node,
+                            rv_node,
                             edge
                         )
                     elif len(unit_nodes) == 0:
@@ -1245,42 +1251,42 @@ class ExtractRealValue_Stage:
                         else:
                             default_unit_id = "missing"
                         rv_node = RealValuePropertyNode(
-                            prop_term_node.term_id, 
-                            float(numeric_node.token_str), 
+                            prop_term_node.term_id,
+                            float(numeric_node.token_str),
                             default_unit_id
                         )
                         text_mining_graph.add_edge(
-                            prop_term_node, 
-                            rv_node, 
+                            prop_term_node,
+                            rv_node,
                             edge
                         )
                         text_mining_graph.add_edge(
-                            numeric_node, 
-                            rv_node, 
-                            edge    
-                        )  
+                            numeric_node,
+                            rv_node,
+                            edge
+                        )
                     else:
                         rv_node = RealValuePropertyNode(
-                            prop_term_node.term_id, 
-                            float(numeric_node.token_str), 
+                            prop_term_node.term_id,
+                            float(numeric_node.token_str),
                             None
                         )
                         text_mining_graph.add_edge(
-                            prop_term_node, 
-                            rv_node, 
+                            prop_term_node,
+                            rv_node,
                             edge
                         )
                         text_mining_graph.add_edge(
-                            numeric_node, 
-                            rv_node, 
+                            numeric_node,
+                            rv_node,
                             edge
                         )
-        return text_mining_graph       
+        return text_mining_graph
 
 
 class ParseTimeWithUnit_Stage:
     """
-    Parse artifacts that represent units of time and look something like '48h'. 
+    Parse artifacts that represent units of time and look something like '48h'.
     That is, expand '48h' to '48 hour'.
     """
     def __init__(self):
@@ -1298,7 +1304,7 @@ class ParseTimeWithUnit_Stage:
     def run(self, text_mining_graph):
         kv_nodes_time_val = set()
         for kv_node in text_mining_graph.key_val_nodes:
-            # Find children of the key that indicate they encode a time-related 
+            # Find children of the key that indicate they encode a time-related
             # real-value
             key_time_nodes = set()
             for edge in text_mining_graph.forward_edges[kv_node]:
@@ -1306,9 +1312,9 @@ class ParseTimeWithUnit_Stage:
                     for t_node in text_mining_graph.forward_edges[kv_node][edge]:
                         key_time_nodes.update(text_mining_graph.downstream_nodes(t_node))
             key_time_nodes = [
-                x 
-                for x in key_time_nodes 
-                if isinstance(x, OntologyTermNode) 
+                x
+                for x in key_time_nodes
+                if isinstance(x, OntologyTermNode)
                 and x.term_id in self.time_nodes
             ]
             if len(key_time_nodes) > 0:
@@ -1320,15 +1326,15 @@ class ParseTimeWithUnit_Stage:
             if kv_node not in kv_nodes_time_val:
                 continue
 
-            # Gather all nodes that are children of the key-nodes that do 
-            # not contain a cell-line value. Remove them if they represent 
+            # Gather all nodes that are children of the key-nodes that do
+            # not contain a cell-line value. Remove them if they represent
             # a cell line
             for edge in text_mining_graph.forward_edges[kv_node]:
                 if isinstance(edge, DerivesInto) and edge.derivation_type == "val":
                     for t_node in text_mining_graph.forward_edges[kv_node][edge]:
                         parseable_token_nodes.update([
-                            x 
-                            for x in text_mining_graph.downstream_nodes(t_node) 
+                            x
+                            for x in text_mining_graph.downstream_nodes(t_node)
                             if isinstance(x, TokenNode)
                         ])
 
@@ -1351,7 +1357,7 @@ class ParseTimeWithUnit_Stage:
                 unit_t_nodes.add(unit_t_node)
             except AttributeError as e:
                 pass
-        
+
         parse_edge = DerivesInto("Parse time and unit")
         for source_node, target_nodes in tnode_to_edges.iteritems():
             for target_node in target_nodes:
@@ -1361,12 +1367,12 @@ class ParseTimeWithUnit_Stage:
         for unit_t_node in unit_t_nodes:
             expanded_unit = self.unit_to_expansion[unit_t_node.token_str]
             syn_unit_t_node = TokenNode(
-                expanded_unit, 
+                expanded_unit,
                 unit_t_node.origin_gram_start,
-                unit_t_node.origin_gram_end)       
+                unit_t_node.origin_gram_end)
             text_mining_graph.add_edge(unit_t_node, syn_unit_t_node, unit_edge)
-           
-        return text_mining_graph 
+
+        return text_mining_graph
 
 
 ###################################################################################
@@ -1393,7 +1399,7 @@ class CustomConsequentTerms_Stage:
                 text_mining_graph.add_edge(node, e[0], e[1])
 
         return text_mining_graph
- 
+
 
 class LinkedTermsOfSuperterms_Stage:
     def __init__(self):
@@ -1420,10 +1426,10 @@ class LinkedTermsOfSuperterms_Stage:
 
 class ConsequentCulturedCell_Stage:
     """
-    If the sample maps to a Cellosaurus cell line 
-    term, then we infer the sample is a cultured 
+    If the sample maps to a Cellosaurus cell line
+    term, then we infer the sample is a cultured
     cell.
-    """ 
+    """
     def run(self, text_mining_graph):
         edge = Inference("Cell culture from cell line")
         new_o_node_cl = OntologyTermNode("CL:0000010")
@@ -1436,7 +1442,7 @@ class ConsequentCulturedCell_Stage:
         for c_node in cell_line_nodes:
             text_mining_graph.add_edge(c_node, new_o_node_cl, edge)
             text_mining_graph.add_edge(c_node, new_o_node_bto, edge)
- 
+
         return text_mining_graph
 
 
@@ -1465,7 +1471,7 @@ class InferCellLineTerms_Stage:
             if o_node.namespace() == "CVCL" and o_node.term_id in self.cvcl_to_mappings:
                 for t_id in self.cvcl_to_mappings[o_node.term_id]["mapped_terms"]:
                     new_o_node = OntologyTermNode(t_id)
-                    onode_to_edges[o_node].append(new_o_node) 
+                    onode_to_edges[o_node].append(new_o_node)
                 for real_val in self.cvcl_to_mappings[o_node.term_id]["real_value_properties"]:
                     new_rv_node = RealValuePropertyNode(real_val[0], real_val[1], real_val[2])
                     onode_to_edges[o_node].append(new_rv_node)
@@ -1499,7 +1505,7 @@ def get_ngrams(text, n):
         else:
             new_words.append(word)
     words = new_words
-        
+
 
     if not words:
         return [], []
@@ -1516,7 +1522,7 @@ def get_ngrams(text, n):
             word_char_i = 0
         if word_i == len(words):
             break
-        
+
         if text[text_i] ==  words[word_i][word_char_i]:
             word_to_indices[word_i].append(text_i)
             word_char_i += 1
@@ -1530,9 +1536,9 @@ def get_ngrams(text, n):
         text_char_end = word_to_indices[i+n-1][-1]
         n_gram = text[text_char_begin: text_char_end+1]
         n_grams.append(n_gram)
-        intervals.append((text_char_begin, text_char_end+1))       
+        intervals.append((text_char_begin, text_char_end+1))
 
-    return n_grams, intervals    
+    return n_grams, intervals
 
 
 
@@ -1552,7 +1558,7 @@ def nltk_n_grams(in_str, n):
 
 
 
- 
+
 def main():
 
     """
@@ -1577,7 +1583,7 @@ def main():
         "cell type":   "memory B cell"
     }
     """
-    
+
     tag_to_val = {
         "body site": "Left Brodmann's Area 10 (Prefrontal Cortex)"
     }
@@ -1594,11 +1600,11 @@ def main():
     prop_spec_syn = PropertySpecificSynonym_Stage()
     filt_match_priority = FilterOntologyMatchesByPriority_Stage()
     match_cust_targs = ExactMatchCustomTargets_Stage()
-    cellline_to_implied_disease = CellLineToImpliedDisease_Stage() 
-    infer_dev_stage = ImpliedDevelopmentalStageFromAge_Stage() 
+    cellline_to_implied_disease = CellLineToImpliedDisease_Stage()
+    infer_dev_stage = ImpliedDevelopmentalStageFromAge_Stage()
     cell_culture = ConsequentCulturedCell_Stage()
     linked_super = LinkedTermsOfSuperterms_Stage()
-    cust_conseq = CustomConsequentTerms_Stage() 
+    cust_conseq = CustomConsequentTerms_Stage()
     delimit = Delimit_Stage('+')
     delimit2 = Delimit_Stage('-')
     block_cell_line_key = BlockCellLineNonCellLineKey_Stage()
@@ -1610,12 +1616,12 @@ def main():
     spell_var = SPECIALISTSpellingVariants(spec_lex)
     prioritize_exact = PrioritizeExactMatchOverFuzzyMatch()
 
-    #efo_og, x, y = load_ontology.load("13") 
+    #efo_og, x, y = load_ontology.load("13")
     #fuzzy_match_EFO = FuzzyStringMatching_Stage(efo_og, 0.1, query_len_thresh=3)
 
     #cvcl_og, x, y = load_ontology.load("4")
     #fuzzy_match_CVCL = FuzzyStringMatching_Stage(cvcl_og, 0.1, query_len_thresh=3)
-    
+
     exact_match = ExactStringMatching_Stage(["1", "2", "4", "5", "7", "8", "9"], query_len_thresh=3)
     #fuzzy_match = FuzzyStringMatching_Stage(0.1, query_len_thresh=3)
     real_val = ExtractRealValue_Stage()
@@ -1623,34 +1629,30 @@ def main():
 
     #stages = [init_tokens_stage, hier_ngram, delimit, delimit2]
     #stages = [init_tokens_stage, hier_ngram, exact_match, match_cust_targs, block_cell_line_key]
-    #stages = [init_tokens_stage, hier_ngram, exact_match, cellline_to_implied_disease]   
+    #stages = [init_tokens_stage, hier_ngram, exact_match, cellline_to_implied_disease]
     #stages = [init_tokens_stage, acr_to_expan]
     #stages = [init_tokens_stage, ngram, exact_match, time_unit, exact_match, real_val]
 
     stages = [init_tokens_stage, ngram, lower_stage, inflec_var, spell_var, fuzzy_match, prioritize_exact]
 
     p = Pipeline(stages, defaultdict(lambda: 1.0))
-    
+
     mapped_terms, real_val_props =  p.run(tag_to_val)
     result = {
         "Mapped ontology terms": [
-            x.to_dict() 
+            x.to_dict()
             for x in mapped_terms
-        ], 
+        ],
         "Real valued properties": [
-            x.to_dict() 
+            x.to_dict()
             for x in real_val_props
         ]
     }
     print json.dumps(result, indent=4, separators=(',', ': '))
-    
+
     #print json.dumps([x.to_dict() for x in p.run(tag_to_val)], indent=4, separators=(',', ': '))
 
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
