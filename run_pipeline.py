@@ -35,14 +35,17 @@ def main():
     parser = OptionParser()
     #parser.add_option("-f", "--key_value_file", help="JSON file storing key-value pairs describing sample")
     (options, args) = parser.parse_args()
-   
     input_f = args[0]
-    write_f = args[1]
-     
+    # Designate file to write output to
+    if len(args) >1 :
+        write_f = args[1]
+        with open(input_f, "r") as f:
+            tag_to_vals = json.load(f)
+    else:
+        write_f = str(input_f+".msrap")
+        with open(input_f, "r") as f:
+            tag_to_vals = json.load(f)
     # Map key-value pairs to ontologies
-    with open(input_f, "r") as f:
-        tag_to_vals = json.load(f)
-
     # Load ontologies
     ont_name_to_ont_id = {
         "UBERON":"12",
