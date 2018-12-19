@@ -22,7 +22,7 @@ python2 download_specialist_lexicon.py
 
 # Build BK-tree for fuzzy string matching
 echo "Building the BK-tree from the ontologies..."
-mkdir ../map_sra_to_ontology/fuzzy_matching_index
+mkdir -p ../map_sra_to_ontology/fuzzy_matching_index
 python2 build_bk_tree.py
 mv fuzzy_match_bk_tree.pickle ../map_sra_to_ontology/fuzzy_matching_index 
 mv fuzzy_match_string_data.json ../map_sra_to_ontology/fuzzy_matching_index

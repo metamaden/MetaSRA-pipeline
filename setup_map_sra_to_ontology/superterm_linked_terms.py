@@ -3,14 +3,17 @@
 # term_b is linked to an ancestor term of term_a.
 ###################################################################
 
+import sys
+import os
+sys.path.append(os.path.join("..","map_sra_to_ontology"))
+import map_sra_to_ontology
+from map_sra_to_ontology import load_ontology
+
 from collections import defaultdict
 import json
 from sets import Set
 from collections import deque
 import marisa_trie as mt
-
-import map_sra_to_ontology
-from map_sra_to_ontology import load_ontology
 
 def main():
     efo_cell_og, x,y = load_ontology.load("11")

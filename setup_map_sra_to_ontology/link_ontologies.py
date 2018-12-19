@@ -6,6 +6,8 @@
 import sys
 import os
 sys.path.append(os.path.join("..","map_sra_to_ontology"))
+import map_sra_to_ontology
+from map_sra_to_ontology import load_ontology
 
 from optparse import OptionParser
 from collections import defaultdict
@@ -13,9 +15,6 @@ import json
 from sets import Set
 from collections import deque
 import marisa_trie as mt
-
-import map_sra_to_ontology
-from map_sra_to_ontology import load_ontology
 
 def main():
     efo_celltype_og, x,y = load_ontology.load("11")

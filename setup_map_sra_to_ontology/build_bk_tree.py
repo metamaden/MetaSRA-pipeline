@@ -1,6 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.join("..","bktree"))
+sys.path.append(os.path.join("..","map_sra_to_ontology"))
 from bktree import BKTree
 import load_ontology
 import string_metrics
