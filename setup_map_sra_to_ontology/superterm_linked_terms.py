@@ -4,8 +4,7 @@
 ###################################################################
 
 import sys
-import os
-sys.path.append(os.path.join("..","map_sra_to_ontology"))
+sys.path.append("..")
 import map_sra_to_ontology
 from map_sra_to_ontology import load_ontology
 
