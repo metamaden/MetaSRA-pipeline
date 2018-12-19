@@ -1,5 +1,5 @@
 import sys
-sys.path.append("..)
+sys.path.append("..")
 import map_sra_to_ontology
 from map_sra_to_ontology import load_ontology
 
