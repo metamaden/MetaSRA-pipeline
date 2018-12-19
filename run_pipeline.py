@@ -9,13 +9,16 @@ from optparse import OptionParser
 import json
 from sets import Set
 import sys
+import os
 reload(sys)
 sys.setdefaultencoding("utf-8") # needed for Python 2..
+sys.path.append(os.path.join("bktree"))
+sys.path.append(os.path.join("map_sra_to_ontology"))
 import argparse
 from collections import defaultdict, deque
 import json
 import dill
-import os
+
 from os.path import join
 
 import map_sra_to_ontology
