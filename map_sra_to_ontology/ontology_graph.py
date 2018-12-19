@@ -459,9 +459,12 @@ def parse_entity(lines, restrict_to_idspaces):
         for syn in raw_syns:
             m = re.search('\".+\"', syn)
             if m:
-                syn_type = syn.split('"')[2].strip().split()[0]
-                parsed_syn = m.group(0)[1:-1].strip()
-                synonyms.add(Synonym(parsed_syn, syn_type))
+                syn_pre = syn.split('"')[2].strip().split()
+                # only attempt extraction if entry is valid, not mal-formed
+                if len(syn_pre)>0:
+                    syn_type = syn.split('"')[2].strip().split()[0]
+                    parsed_syn = m.group(0)[1:-1].strip()
+                    synonyms.add(Synonym(parsed_syn, syn_type))
         return synonyms
 
     def extract_xrefs(raw_xrefs):
