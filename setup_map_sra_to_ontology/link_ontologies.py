@@ -3,6 +3,10 @@
 # the same name, exact synonym, or related synonym.
 #######################################################################
 
+import sys
+import os
+sys.path.append(os.path.join("..","map_sra_to_ontology"))
+
 from optparse import OptionParser
 from collections import defaultdict
 import json

@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.join("..","bktree"))
 from bktree import BKTree
 import load_ontology
 import string_metrics
