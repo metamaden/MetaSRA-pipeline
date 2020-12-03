@@ -26,12 +26,78 @@ from map_sra_to_ontology import ontology_graph
 from map_sra_to_ontology import load_ontology
 from map_sra_to_ontology import predict_sample_type
 from map_sra_to_ontology import config
-from map_sra_to_ontology import predict_sample_type
 from map_sra_to_ontology import run_sample_type_predictor
 from predict_sample_type.learn_classifier import *
 from map_sra_to_ontology import pipeline_components as pc
 
+# additional imports
+from timeit import default_timer
+import argparse
+
 def main():
+    # add main args to parse
+    parser = argparse.ArgumentParser(description='Arguments for run_pipeline.py')
+    parser.add_argument("--fnvread", type=str, required=True,
+        default=None, help='Paths of files to read, separated with ";".')
+    parser.add_argument("--fnvwrite", type=str, required=True,
+        default=None, help='Paths of files to write, separated with ";".')
+    args = parser.parse_args()
+    # start timer
+    t1 = default_timer()
+    parser = OptionParser()
+    # parse args
+    print str(args)
+    input_fl = args.fnvread.split(";")
+    print "detected "+str(len(input_fl))+" files to read"
+    # summarize detected files
+    input_fl = args.fnvread.split(";")
+    print "detected "+str(len(input_fl))+" files to read"
+    write_fl = args.fnvwrite.split(";")
+    print "detected "+str(len(write_fl))+" files to write"
+    tagsl = []
+    for infile in input_fl:
+        with open(infile, "r") as opf:
+            tagsl.append(json.load(opf))
+    # ** do main ontology loads outside of main loop
+    ont_name_to_ont_id = {
+        "UBERON":"12",
+        "CL":"1",
+        "DOID":"2",
+        "EFO":"16",
+        "CVCL":"4"}
+    ont_id_to_og = {x:load_ontology.load(x)[0] for x in ont_name_to_ont_id.values()}
+    pipeline = p_48()
+    # do main loop on samples (works for up to 500, then string too long)
+    for ii, tag_to_vals in enumerate(tagsl):
+        write_f = write_fl[ii]
+        # Designate file to write output to
+        # Map key-value pairs to ontologies
+        pipeline = p_48()
+        all_mappings = []
+        for tag_to_val in tag_to_vals:
+            sample_acc_to_matches = {}
+            mapped_terms, real_props = pipeline.run(tag_to_val)
+            mappings = {
+                "mapped_terms":[x.to_dict() for x in mapped_terms],
+                "real_value_properties": [x.to_dict() for x in real_props]
+            }
+            all_mappings.append(mappings)
+        outputs = []
+        for tag_to_val, mappings in zip(tag_to_vals, all_mappings):
+            outputs.append(
+                run_pipeline_on_key_vals(tag_to_val, ont_id_to_og, mappings)
+            )
+        # use json.dump to stream json to outfile, where fn is second arg
+        with open(write_f, 'w') as outfile:
+            json.dump(obj = outputs, fp = outfile, indent=4,
+                separators=(',', ': ')
+                )
+        # use json.dumps to return json output as a string, to console
+        print json.dumps(outputs, indent=4, separators=(',', ': '))
+        print "time elapsed = "+str(default_timer() - t1)
+
+
+
     parser = OptionParser()
     #parser.add_option("-f", "--key_value_file", help="JSON file storing key-value pairs describing sample")
     (options, args) = parser.parse_args()
