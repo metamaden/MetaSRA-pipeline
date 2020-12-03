@@ -96,56 +96,6 @@ def main():
         print json.dumps(outputs, indent=4, separators=(',', ': '))
         print "time elapsed = "+str(default_timer() - t1)
 
-
-
-    parser = OptionParser()
-    #parser.add_option("-f", "--key_value_file", help="JSON file storing key-value pairs describing sample")
-    (options, args) = parser.parse_args()
-    input_f = args[0]
-    # Designate file to write output to
-    if len(args) >1 :
-        write_f = args[1]
-        with open(input_f, "r") as f:
-            tag_to_vals = json.load(f)
-    else:
-        write_f = str(input_f+".msrap")
-        with open(input_f, "r") as f:
-            tag_to_vals = json.load(f)
-    # Map key-value pairs to ontologies
-    # Load ontologies
-    ont_name_to_ont_id = {
-        "UBERON":"12",
-        "CL":"1",
-        "DOID":"2",
-        "EFO":"16",
-        "CVCL":"4"}
-    ont_id_to_og = {x:load_ontology.load(x)[0] for x in ont_name_to_ont_id.values()}
-    pipeline = p_48()
-
-    all_mappings = []
-    for tag_to_val in tag_to_vals:
-        sample_acc_to_matches = {}
-        mapped_terms, real_props = pipeline.run(tag_to_val)
-        mappings = {
-            "mapped_terms":[x.to_dict() for x in mapped_terms],
-            "real_value_properties": [x.to_dict() for x in real_props]
-        }
-        all_mappings.append(mappings)
-
-    outputs = []
-    for tag_to_val, mappings in zip(tag_to_vals, all_mappings):
-        outputs.append(
-            run_pipeline_on_key_vals(tag_to_val, ont_id_to_og, mappings)
-        )
-    # use json.dump to stream json to outfile, where fn is second arg
-    if write_f:
-        with open(write_f, 'w') as outfile:
-            json.dump(obj = outputs, fp = outfile, indent=4, 
-                separators=(',', ': ')
-                )
-    # use json.dumps to return json output as a string, to console
-    print json.dumps(outputs, indent=4, separators=(',', ': '))
-
 def run_pipeline_on_key_vals(tag_to_val, ont_id_to_og, mapping_data): 
     
     mapped_terms = []
